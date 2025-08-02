@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Codenames</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/htmx.org/dist/ext/ws.js"></script>
+</head>
+<body hx-ext="ws" ws-connect="/ws/{{ game_id }}">
+    <h1>AI Codenames</h1>
+    
+    <div id="game-board-container">
+        {% include 'partials/game_board.html' %}
+    </div>
+
+    <button hx-post="/move/{{ game_id }}" hx-swap="none">
+        Simulate AI Move
+    </button>
+</body>
+</html>

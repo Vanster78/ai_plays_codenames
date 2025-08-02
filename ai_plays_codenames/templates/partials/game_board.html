@@ -1,0 +1,9 @@
+<div id="game-board-container" hx-swap-oob="true">
+    <div class="board">
+        {% for card in game_state %}
+            <div class="card {% if card.revealed %}revealed{% endif %}">
+                {{ card.word }}
+            </div>
+        {% endfor %}
+    </div>
+</div>

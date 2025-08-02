@@ -1,0 +1,26 @@
+# Python virtual environment
+.venv/
+venv/
+env/
+ai_codenames/
+
+# Byte-code files
+__pycache__/
+*.pyc
+*.pyd
+*.pyo
+
+# IDE and editor files (common ones)
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Operating System files
+.DS_Store
+Thumbs.db
+
+# Other common build/temp files you might encounter
+dist/
+build/
+*.egg-info/

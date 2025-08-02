@@ -1,0 +1,5 @@
+body { font-family: sans-serif; text-align: center; background-color: #f0f0f0; }
+.board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 600px; margin: 20px auto; }
+.card { padding: 30px; border: 1px solid #ccc; background-color: #fff; border-radius: 8px; font-size: 1.2em; transition: background-color 0.3s; }
+.card.revealed { background-color: #a0e7e5; color: #fff; border-color: #a0e7e5; }
+button { margin-top: 20px; padding: 10px 20px; font-size: 1em; cursor: pointer; }
