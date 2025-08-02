@@ -10,12 +10,17 @@
 <body hx-ext="ws" ws-connect="/ws/{{ game_id }}">
     <h1>AI Codenames</h1>
     
-    <div id="game-board-container">
-        {% include 'partials/game_board.html' %}
+    <div id="setup-or-game">
+        {% if not game_state or not game_state.teams_configured %}
+            {% include 'partials/setup.html' %}
+        {% else %}
+            <div id="game-board-container">
+                {% include 'partials/game_board.html' %}
+            </div>
+            <button hx-post="/move/{{ game_id }}" hx-swap="none">
+                Simulate AI Move
+            </button>
+        {% endif %}
     </div>
-
-    <button hx-post="/move/{{ game_id }}" hx-swap="none">
-        Simulate AI Move
-    </button>
 </body>
 </html>

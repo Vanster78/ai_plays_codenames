@@ -3,6 +3,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+
 from .game import CodenamesGame
 from .websocket import ConnectionManager
 
@@ -20,9 +21,53 @@ manager = ConnectionManager()
 GAME_ID = "test_game"
 game = CodenamesGame()
 
+# Store setup state in memory for now
+setup_state = {"teams": [
+    {"name": "", "players": []},
+    {"name": "", "players": []}
+]}
+
+
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
-    """Serve the main game page."""
+    """Serve the main game page or setup screen."""
+    # If teams are not configured, show setup
+    game_state = game.get_state()
+    if not getattr(game_state, 'teams_configured', False):
+        # Pass a dummy game_state with teams_configured = False
+        return templates.TemplateResponse(
+            "index.html", {"request": request, "game_state": {"teams_configured": False}, "game_id": GAME_ID}
+        )
+    return templates.TemplateResponse(
+        "index.html", {"request": request, "game_state": game_state, "game_id": GAME_ID}
+    )
+from fastapi import Form
+
+@app.post("/setup", response_class=HTMLResponse)
+async def setup_game(request: Request):
+    """Handle setup form submission and initialize game."""
+    form = await request.form()
+    # Parse teams and players
+    teams = []
+    for team_idx in [0, 1]:
+        team_name = form.get(f"team_name_{team_idx}", "Red" if team_idx == 0 else "Blue")
+        team_color = form.get(f"team_color_{team_idx}", "red" if team_idx == 0 else "blue")
+        players = []
+        i = 0
+        while True:
+            ptype = form.get(f"player_type_{team_idx}_{i}")
+            if ptype is None:
+                break
+            pname = form.get(f"player_name_{team_idx}_{i}", "")
+            if not pname:
+                pname = ptype if ptype != "Human" else "Human"
+            players.append({"type": ptype, "name": pname})
+            i += 1
+        teams.append({"name": team_name, "color": team_color, "players": players})
+    setup_state["teams"] = teams
+    # Configure the game instance
+    game.setup_teams(teams)
+    # Render the game board
     game_state = game.get_state()
     return templates.TemplateResponse(
         "index.html", {"request": request, "game_state": game_state, "game_id": GAME_ID}

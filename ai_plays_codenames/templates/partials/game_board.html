@@ -1,6 +1,18 @@
 <div id="game-board-container" hx-swap-oob="true">
+    <div class="teams-info">
+        {% for team in game_state.teams %}
+            <div class="team-info {{ 'team-red' if team.color == 'red' else 'team-blue' }}">
+                <strong>{{ team.name }}</strong>
+                <ul>
+                {% for player in team.players %}
+                    <li>{{ player.name }}</li>
+                {% endfor %}
+                </ul>
+            </div>
+        {% endfor %}
+    </div>
     <div class="board">
-        {% for card in game_state %}
+        {% for card in game_state.board %}
             <div class="card {% if card.revealed %}revealed{% endif %}">
                 {{ card.word }}
             </div>

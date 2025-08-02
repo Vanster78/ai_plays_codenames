@@ -1,0 +1,159 @@
+<div id="setup-container">
+    <h2>Game Setup</h2>
+    <form id="setup-form" hx-post="/setup" hx-target="#setup-container" hx-swap="outerHTML">
+        <div class="teams-setup">
+            {% set default_names = ['Red', 'Blue'] %}
+            {% for team in [0,1] %}
+            <div class="team-setup" data-team="{{ team }}">
+                <label>Team Name:
+                    <input type="text" name="team_name_{{ team }}" required placeholder="Enter team name" value="{{ default_names[team] }}">
+                </label>
+                <input type="hidden" name="team_color_{{ team }}" value="{{ 'red' if team == 0 else 'blue' }}">
+                <div class="players-list" id="players-list-{{ team }}">
+                    <!-- Player rows will be added here -->
+                </div>
+                <button type="button" class="add-player-btn" data-team="{{ team }}">+ Add Player</button>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="switch-controls">
+            <button type="button" id="switch-colors-btn"><span class="icon-swap">🔄</span> Switch Colors</button>
+            <button type="button" id="restart-btn"><span class="icon-restart">🔁</span> Restart</button>
+        </div>
+        <button type="submit" class="start-btn" id="start-btn"><span class="icon-play">▶️</span> Start Game</button>
+    </form>
+</div>
+<script>
+const AI_MODELS = ["AI_GPT", "AI_BERT", "AI_Random"];
+const TEAM_COLORS = ["red", "blue"];
+const TEAM_BG = ["#ffdddd", "#dde6ff"];
+let teamColorType = ["red", "blue"];
+
+function createPlayerRow(team, idx) {
+    const row = document.createElement('div');
+    row.className = 'player-row';
+    row.innerHTML = `
+        <button type="button" class="switch-team-btn" title="Switch team">⇄</button>
+        <select name="player_type_${team}_${idx}" class="player-type-select">
+            <option value="AI_GPT">AI: GPT</option>
+            <option value="AI_BERT">AI: BERT</option>
+            <option value="AI_Random">AI: Random</option>
+            <option value="Human">Human</option>
+        </select>
+        <input type="text" name="player_name_${team}_${idx}" class="player-name-input" placeholder="Player name (optional for AI)" style="display:none;">
+        <button type="button" class="remove-player-btn">&minus;</button>
+    `;
+    const typeSelect = row.querySelector('.player-type-select');
+    const nameInput = row.querySelector('.player-name-input');
+    // Show name input for AI by default, with default value
+    typeSelect.addEventListener('change', function() {
+        if (this.value === 'Human') {
+            nameInput.style.display = '';
+            nameInput.required = true;
+            nameInput.placeholder = 'Player name';
+            nameInput.value = '';
+        } else {
+            nameInput.style.display = '';
+            nameInput.required = false;
+            nameInput.placeholder = 'AI name (optional)';
+            nameInput.value = this.options[this.selectedIndex].text.replace('AI: ', 'AI_');
+        }
+    });
+    // Set default for AI
+    if (typeSelect.value !== 'Human') {
+        nameInput.style.display = '';
+        nameInput.value = typeSelect.options[typeSelect.selectedIndex].text.replace('AI: ', 'AI_');
+    }
+    row.querySelector('.remove-player-btn').addEventListener('click', function() {
+        row.remove();
+        updateAddButtons();
+    });
+    // Switch team button (always use DOM to get current team)
+    row.querySelector('.switch-team-btn').addEventListener('click', function() {
+        const rowEl = this.closest('.player-row');
+        const parentList = rowEl.parentElement;
+        const currentTeam = parseInt(parentList.id.split('-').pop());
+        const otherTeam = 1 - currentTeam;
+        const otherList = document.getElementById('players-list-' + otherTeam);
+        if (otherList.children.length >= 10) return;
+        rowEl.remove();
+        // Update name attributes
+        const idx = otherList.children.length;
+        rowEl.querySelector('.player-type-select').setAttribute('name', `player_type_${otherTeam}_${idx}`);
+        rowEl.querySelector('.player-name-input').setAttribute('name', `player_name_${otherTeam}_${idx}`);
+        otherList.appendChild(rowEl);
+        updateAddButtons();
+    });
+    return row;
+}
+
+function updateTeamBackgrounds() {
+    document.querySelectorAll('.team-setup').forEach((el, i) => {
+        el.style.background = teamColorType[i] === 'red' ? TEAM_BG[0] : TEAM_BG[1];
+        el.style.borderColor = teamColorType[i] === 'red' ? '#ff6b6b' : '#4d7cff';
+        el.querySelector(`input[name="team_color_${i}"]`).value = teamColorType[i];
+    });
+}
+function updateAddButtons() {
+    document.querySelectorAll('.add-player-btn').forEach(btn => {
+        const team = btn.getAttribute('data-team');
+        const list = document.getElementById('players-list-' + team);
+        btn.style.display = (list.children.length >= 10) ? 'none' : '';
+    });
+}
+document.querySelectorAll('.add-player-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const team = this.getAttribute('data-team');
+        const list = document.getElementById('players-list-' + team);
+        if (list.children.length >= 10) return;
+        const idx = list.children.length;
+        list.appendChild(createPlayerRow(team, idx));
+        updateAddButtons();
+    });
+});
+
+document.getElementById('switch-colors-btn').addEventListener('click', function() {
+    teamColorType.reverse();
+    updateTeamBackgrounds();
+});
+
+document.getElementById('restart-btn').addEventListener('click', function() {
+    window.location.reload();
+});
+
+function validateSetup() {
+    // Each team: name not empty, at least 2 players, each player has non-empty name
+    let valid = true;
+    for (let t = 0; t < 2; t++) {
+        const teamName = document.querySelector(`input[name="team_name_${t}"]`).value.trim();
+        if (!teamName) { valid = false; break; }
+        const players = document.querySelectorAll(`#players-list-${t} .player-row`);
+        if (players.length < 2) { valid = false; break; }
+        for (const row of players) {
+            const nameInput = row.querySelector('.player-name-input');
+            if (!nameInput.value.trim()) { valid = false; break; }
+        }
+    }
+    document.getElementById('start-btn').disabled = !valid;
+    document.getElementById('start-btn').style.opacity = valid ? '' : '0.5';
+}
+
+// Attach validation to all relevant events
+['input', 'change'].forEach(evt => {
+    document.getElementById('setup-form').addEventListener(evt, validateSetup, true);
+});
+
+// Also validate after any add/remove/switch
+const origUpdateAddButtons = updateAddButtons;
+updateAddButtons = function() {
+    origUpdateAddButtons();
+    validateSetup();
+};
+
+// Initial validation
+validateSetup();
+
+// Set initial backgrounds and add button state
+updateTeamBackgrounds();
+updateAddButtons();
+</script>
